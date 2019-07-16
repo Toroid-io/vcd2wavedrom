@@ -1,0 +1,32 @@
+{
+    "signal": {
+        "rst_i": {
+            "phase": 0.9
+        },
+        "datain": {
+            "phase": 0.9
+        },
+        "datain_k": {
+            "phase": 0.9
+        },
+        "datain_valid": {
+            "phase": 0.9
+        }
+    },
+    "filter": [
+        "clk_i",
+        "rst_i",
+        "rd_in",
+        "datain",
+        "datain_k",
+        "datain_valid",
+        "dataout",
+        "dataout_valid",
+        "dataout_kerr",
+        "rd_out"
+    ],
+    "offset": 5,
+    "samplerate": 10,
+    "clocks": ["clk_i"],
+    "maxtime": 100
+}

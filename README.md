@@ -13,34 +13,40 @@ optional arguments:
   --input INPUT
 ```
 
-## Signal
+## Quickstart
+
+Test the example given by running `make` in the project directory.
+
+## Config options
+
+### Signal
 
 The signal key is appended to the corresponding signal in the wavedrom
 output. You can add here wavedrom parameters.
 
-## Filter
+### Filter
 
 You can select which signals are included in the wavedrom output by
 adding the signal name to this list. The resulting list is created in
 this order.
 
-## Repalce
+### Repalce
 
 Raw values may be replaced by a more human readable text. See the
 example config file for an example.
 
-## Offset
+### Offset
 
 This is the first tick from which sample the vcd waves.
 
-## Samplerate
+### Samplerate
 
 Should be set to clock period / resolution of simulation.
 
-## Clocks
+### Clocks
 
 List of clock signals (high level is replaced by clock edge symbol.
 
-## Maxtime
+### Maxtime
 
 Sample (or extend last value) until `maxtime`.

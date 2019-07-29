@@ -12,3 +12,35 @@ optional arguments:
   --config CONFIGFILE
   --input INPUT
 ```
+
+## Signal
+
+The signal key is appended to the corresponding signal in the wavedrom
+output. You can add here wavedrom parameters.
+
+## Filter
+
+You can select which signals are included in the wavedrom output by
+adding the signal name to this list. The resulting list is created in
+this order.
+
+## Repalce
+
+Raw values may be replaced by a more human readable text. See the
+example config file for an example.
+
+## Offset
+
+This is the first tick from which sample the vcd waves.
+
+## Samplerate
+
+Should be set to clock period / resolution of simulation.
+
+## Clocks
+
+List of clock signals (high level is replaced by clock edge symbol.
+
+## Maxtime
+
+Sample (or extend last value) until `maxtime`.

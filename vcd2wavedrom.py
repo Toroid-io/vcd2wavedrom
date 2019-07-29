@@ -11,6 +11,15 @@ busregex = re.compile(r'(.+)\[(\d+)\]')
 config = {}
 
 
+def replacevalue(wave, strval):
+    wavename = wave.split('.')[1]
+    if 'replace' in config and \
+       wavename in config['replace']:
+        if strval in config['replace'][wavename]:
+            return config['replace'][wavename][strval]
+    return strval
+
+
 def group_buses(vcd_dict, slots):
     buses = {}
     buswidth = {}
@@ -53,6 +62,7 @@ def group_buses(vcd_dict, slots):
             if byte == -1:
                 buses[wave]['wave'] += 'x'
             else:
+                strval = replacevalue(wave, strval)
                 if len(buses[wave]['data']) > 0 and \
                    buses[wave]['data'][-1] == strval:
                     buses[wave]['wave'] += '.'
@@ -81,9 +91,10 @@ def homogenize_waves(vcd_dict, timescale):
 
 def includewave(wave):
     wavename = wave.split('.')[1]
-    if wavename not in config['filter']:
-        return False
-    return True
+    if '__all__' in config['filter'] or \
+       wavename in config['filter']:
+        return True
+    return False
 
 
 def clockvalue(wave, digit):
@@ -204,7 +215,7 @@ def vcd2wavedrom():
 def main(argv):
     parser = argparse.ArgumentParser(description='Transform VCD to wavedrom')
     parser.add_argument('--config', dest='configfile', required=True)
-    parser.add_argument('--input', dest='input', required=True)
+    parser.add_argument('--input', nargs='?', dest='input', required=True)
 
     args = parser.parse_args(argv)
     args.input = os.path.abspath(os.path.join(os.getcwd(), args.input))

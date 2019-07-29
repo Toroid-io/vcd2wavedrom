@@ -1,5 +1,5 @@
 $date
-	Tue Jul 16 22:45:03 2019
+	Mon Jul 29 17:26:18 2019
 $end
 $version
 	ModelSim Version 10.5b
@@ -9,34 +9,34 @@ $timescale
 $end
 
 $scope module encoder_8b_10b_testbench $end
-$var wire 1 ! clk_i $end
-$var wire 1 " rst_i $end
-$var wire 1 # datain [7] $end
-$var wire 1 $ datain [6] $end
-$var wire 1 % datain [5] $end
-$var wire 1 & datain [4] $end
-$var wire 1 ' datain [3] $end
-$var wire 1 ( datain [2] $end
-$var wire 1 ) datain [1] $end
-$var wire 1 * datain [0] $end
-$var wire 1 + rd_in [1] $end
-$var wire 1 , rd_in [0] $end
-$var wire 1 - dataout [9] $end
-$var wire 1 . dataout [8] $end
-$var wire 1 / dataout [7] $end
-$var wire 1 0 dataout [6] $end
-$var wire 1 1 dataout [5] $end
-$var wire 1 2 dataout [4] $end
-$var wire 1 3 dataout [3] $end
-$var wire 1 4 dataout [2] $end
-$var wire 1 5 dataout [1] $end
-$var wire 1 6 dataout [0] $end
-$var wire 1 7 dataout_valid $end
-$var wire 1 8 rd_out [1] $end
-$var wire 1 9 rd_out [0] $end
-$var wire 1 : dataout_kerr $end
-$var wire 1 ; datain_k $end
-$var wire 1 < datain_valid $end
+$var wire 1 ! s_clk_int $end
+$var wire 1 " s_rst_int $end
+$var wire 1 # s_datain_int [7] $end
+$var wire 1 $ s_datain_int [6] $end
+$var wire 1 % s_datain_int [5] $end
+$var wire 1 & s_datain_int [4] $end
+$var wire 1 ' s_datain_int [3] $end
+$var wire 1 ( s_datain_int [2] $end
+$var wire 1 ) s_datain_int [1] $end
+$var wire 1 * s_datain_int [0] $end
+$var wire 1 + s_rd_in_int [1] $end
+$var wire 1 , s_rd_in_int [0] $end
+$var wire 1 - s_dataout_int [9] $end
+$var wire 1 . s_dataout_int [8] $end
+$var wire 1 / s_dataout_int [7] $end
+$var wire 1 0 s_dataout_int [6] $end
+$var wire 1 1 s_dataout_int [5] $end
+$var wire 1 2 s_dataout_int [4] $end
+$var wire 1 3 s_dataout_int [3] $end
+$var wire 1 4 s_dataout_int [2] $end
+$var wire 1 5 s_dataout_int [1] $end
+$var wire 1 6 s_dataout_int [0] $end
+$var wire 1 7 s_dataout_valid_int $end
+$var wire 1 8 s_rd_out_int [1] $end
+$var wire 1 9 s_rd_out_int [0] $end
+$var wire 1 : s_dataout_kerr_int $end
+$var wire 1 ; s_datain_k_int $end
+$var wire 1 < s_datain_valid_int $end
 $upscope $end
 $enddefinitions $end
 #0
@@ -167,7 +167,6 @@ $end
 0!
 #55
 1!
-1:
 07
 #56
 1*
@@ -180,7 +179,6 @@ $end
 0!
 #65
 1!
-0:
 #70
 0!
 #75

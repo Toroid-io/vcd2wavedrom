@@ -1,32 +1,45 @@
 {
     "signal": {
-        "rst_i": {
+        "s_rst_int": {
             "phase": 0.9
         },
-        "datain": {
+        "s_datain_int": {
             "phase": 0.9
         },
-        "datain_k": {
+        "s_datain_k_int": {
             "phase": 0.9
         },
-        "datain_valid": {
+        "s_datain_valid_int": {
+            "phase": 0.9
+        },
+        "s_rd_in_int": {
             "phase": 0.9
         }
     },
     "filter": [
-        "clk_i",
-        "rst_i",
-        "rd_in",
-        "datain",
-        "datain_k",
-        "datain_valid",
-        "dataout",
-        "dataout_valid",
-        "dataout_kerr",
-        "rd_out"
+        "s_clk_int",
+        "s_rst_int",
+        "s_rd_in_int",
+        "s_datain_int",
+        "s_datain_k_int",
+        "s_datain_valid_int",
+        "s_dataout_int",
+        "s_dataout_valid_int",
+        "s_dataout_kerr_int",
+        "s_rd_out_int"
     ],
+    "replace": {
+        "s_rd_in_int": {
+            "1": "RD+",
+            "2": "RD-"
+        },
+        "s_rd_out_int": {
+            "1": "RD+",
+            "2": "RD-"
+        }
+    },
     "offset": 5,
     "samplerate": 10,
-    "clocks": ["clk_i"],
+    "clocks": ["s_clk_int"],
     "maxtime": 100
 }

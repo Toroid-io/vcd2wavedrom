@@ -197,11 +197,15 @@ def dump_wavedrom(vcd_dict, timescale):
     """
     Print the result
     """
-    print(json.dumps(drom, indent=4))
+    if config['output']:
+        f = open(config['output'], 'w')
+        f.write(json.dumps(drom, indent=4))
+    else:
+        print(json.dumps(drom, indent=4))
 
 
 def vcd2wavedrom():
-    vcd = parse_vcd(config['filename'])
+    vcd = parse_vcd(config['input'])
     timescale = int(re.match(r'(\d+)', get_timescale()).group(1))
     vcd_dict = {}
     for i in vcd:
@@ -216,6 +220,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description='Transform VCD to wavedrom')
     parser.add_argument('--config', dest='configfile', required=True)
     parser.add_argument('--input', nargs='?', dest='input', required=True)
+    parser.add_argument('--output', nargs='?', dest='output', required=False)
 
     args = parser.parse_args(argv)
     args.input = os.path.abspath(os.path.join(os.getcwd(), args.input))
@@ -223,7 +228,8 @@ def main(argv):
     with open(args.configfile) as json_file:
         config.update(json.load(json_file))
 
-    config['filename'] = args.input
+    config['input'] = args.input
+    config['output'] = args.output
     vcd2wavedrom()
 
 

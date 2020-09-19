@@ -17,16 +17,16 @@
         }
     },
     "filter": [
-        "s_clk_int",
-        "s_rst_int",
-        "s_rd_in_int",
-        "s_datain_int",
-        "s_datain_k_int",
-        "s_datain_valid_int",
-        "s_dataout_int",
-        "s_dataout_valid_int",
-        "s_dataout_kerr_int",
-        "s_rd_out_int"
+        "encoder_8b_10b_testbench.s_clk_int",
+        "encoder_8b_10b_testbench.s_rst_int",
+        "encoder_8b_10b_testbench.s_rd_in_int",
+        "encoder_8b_10b_testbench.s_datain_int",
+        "encoder_8b_10b_testbench.s_datain_k_int",
+        "encoder_8b_10b_testbench.s_datain_valid_int",
+        "encoder_8b_10b_testbench.s_dataout_int",
+        "encoder_8b_10b_testbench.s_dataout_valid_int",
+        "encoder_8b_10b_testbench.s_dataout_kerr_int",
+        "encoder_8b_10b_testbench.s_rd_out_int"
     ],
     "replace": {
         "s_rd_in_int": {

@@ -90,9 +90,8 @@ def homogenize_waves(vcd_dict, timescale):
 
 
 def includewave(wave):
-    wavename = wave.split('.')[1]
     if '__all__' in config['filter'] or \
-       wavename in config['filter']:
+       wave in config['filter']:
         return True
     return False
 
@@ -146,7 +145,7 @@ def dump_wavedrom(vcd_dict, timescale):
         if not includewave(wave):
             continue
         drom['signal'].append({
-            'name': wave.split('.')[1],
+            'name': wave,
             'wave': '',
             'data': []
         })

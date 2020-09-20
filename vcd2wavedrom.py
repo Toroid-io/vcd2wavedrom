@@ -8,15 +8,15 @@ from Verilog_VCD import parse_vcd
 from Verilog_VCD import get_timescale
 
 busregex = re.compile(r'(.+)\[(\d+)\]')
+busregex2 = re.compile(r'(.+)\[(\d):(\d)\]')
 config = {}
 
 
 def replacevalue(wave, strval):
-    wavename = wave.split('.')[1]
     if 'replace' in config and \
-       wavename in config['replace']:
-        if strval in config['replace'][wavename]:
-            return config['replace'][wavename][strval]
+       wave in config['replace']:
+        if strval in config['replace'][wave]:
+            return config['replace'][wave][strval]
     return strval
 
 
@@ -33,7 +33,7 @@ def group_buses(vcd_dict, slots):
             pos = int(result.group(2))
             if name not in buses:
                 buses[name] = {
-                        'name': name.split('.')[1],
+                        'name': name,
                         'wave': '',
                         'data': []
                 }
@@ -45,7 +45,7 @@ def group_buses(vcd_dict, slots):
     """
     for wave in buses:
         for slot in range(slots):
-            if not samplenow(wave, slot):
+            if not samplenow(slot):
                 continue
             byte = 0
             strval = ''
@@ -64,7 +64,7 @@ def group_buses(vcd_dict, slots):
             else:
                 strval = replacevalue(wave, strval)
                 if len(buses[wave]['data']) > 0 and \
-                   buses[wave]['data'][-1] == strval:
+                    buses[wave]['data'][-1] == strval:
                     buses[wave]['wave'] += '.'
                 else:
                     buses[wave]['wave'] += '='
@@ -73,10 +73,10 @@ def group_buses(vcd_dict, slots):
 
 
 def homogenize_waves(vcd_dict, timescale):
-    slots = int(config['maxtime']/timescale)
+    slots = int(config['maxtime']/timescale) + 1
     for isig, wave in enumerate(vcd_dict):
         lastval = 'x'
-        for tidx, t in enumerate(range(0, config['maxtime'], timescale)):
+        for tidx, t in enumerate(range(0, config['maxtime'] + timescale, timescale)):
             if len(vcd_dict[wave]) > tidx:
                 newtime = vcd_dict[wave][tidx][0]
             else:
@@ -97,15 +97,12 @@ def includewave(wave):
 
 
 def clockvalue(wave, digit):
-    wavename = wave.split('.')[1]
-    if wavename in config['clocks'] and digit == '1':
+    if wave in config['clocks'] and digit == '1':
         return 'P'
     return digit
 
 
-def samplenow(wave, tick):
-    wavename = wave.split('.')[1]
-
+def samplenow(tick):
     offset = 0
     if 'offset' in config:
         offset = config['offset']
@@ -150,9 +147,9 @@ def dump_wavedrom(vcd_dict, timescale):
             'data': []
         })
         lastval = ''
-        isbus = (len(vcd_dict[wave][0][1]) > 1)
+        isbus = busregex2.match(wave) is not None
         for j in vcd_dict[wave]:
-            if not samplenow(wave, j[0]):
+            if not samplenow(j[0]):
                 continue
             digit = '.'
             if isbus:

@@ -40,6 +40,6 @@
     },
     "offset": 5,
     "samplerate": 10,
-    "clocks": ["s_clk_int"],
+    "clocks": ["encoder_8b_10b_testbench.s_clk_int"],
     "maxtime": 100
 }

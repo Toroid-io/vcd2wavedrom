@@ -7,6 +7,8 @@ import re
 from Verilog_VCD import parse_vcd
 from Verilog_VCD import get_timescale
 
+from math import floor, ceil
+
 busregex = re.compile(r'(.+)\[(\d+)\]')
 busregex2 = re.compile(r'(.+)\[(\d):(\d)\]')
 config = {}
@@ -71,6 +73,103 @@ def group_buses(vcd_dict, slots):
                     buses[wave]['data'].append(strval)
     return buses
 
+def auto_config_waves(vcd_dict):
+    startTime   = -1
+    syncTime    = -1
+    endTime     = -1
+    minDiffTime = -1
+
+    """
+    Warning: will overwrite all information from config file if any
+    Works best with full synchronous signals
+    """
+
+    config['filter'] = []
+    config['clocks'] = []
+    config['signal'] = []
+
+    tmpList=[]
+    for isig, wave in enumerate(vcd_dict):
+        tmpList.append(wave)
+    config['filter'] = tmpList
+
+    for isig, wave in enumerate(vcd_dict):
+        if (startTime < 0) or (vcd_dict[wave][0][0] < startTime):
+            startTime = vcd_dict[wave][0][0]
+    #print('Start time:',startTime)
+
+    for isig, wave in enumerate(vcd_dict):
+        tmpDict = vcd_dict[wave]
+        tmpThisOneIsBus=0
+        for tidx in range(len(tmpDict)):
+            if ((tidx==1) and ((syncTime < 0) or (tmpDict[tidx][0] < syncTime))):
+                syncTime = tmpDict[tidx][0]
+    #print('Sync time:',syncTime)
+
+    tmpIsBus=[]
+    for isig, wave in enumerate(vcd_dict):
+        tmpDict = vcd_dict[wave]
+        tmpThisOneIsBus=0
+        for tidx in range(len(tmpDict)):
+            if (endTime < 0) or (tmpDict[tidx][0] > endTime):
+                endTime = tmpDict[tidx][0]
+            if (len(tmpDict[tidx][1])>1) and (len(tmpDict[tidx][1])>tmpThisOneIsBus):
+                tmpThisOneIsBus=len(tmpDict[tidx][1])
+        tmpIsBus.append(tmpThisOneIsBus)
+    #print('End   time:',endTime)
+
+    for isig, wave in enumerate(vcd_dict):
+        tmpDict = vcd_dict[wave]
+        for tidx in range(1+1,len(tmpDict)):
+            tmpDiff = tmpDict[tidx][0] - tmpDict[tidx-1][0]
+            if (tmpDict[tidx-1][0]>=startTime):
+                if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
+                    minDiffTime = tmpDiff
+    #print("Min diff time:",minDiffTime)
+    if (minDiffTime<0): #corner case
+        for isig, wave in enumerate(vcd_dict):
+            tmpDict = vcd_dict[wave]
+            for tidx in range(1+0,len(tmpDict)):
+                tmpDiff = tmpDict[tidx][0] - tmpDict[tidx-1][0]
+                if (tmpDict[tidx-1][0]>=startTime):
+                    if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
+                        minDiffTime = tmpDiff
+        #print("Min diff time:",minDiffTime)
+
+    #1st loop to refine minDiffTime for async design or multiple async clocks
+    tmpRatio = 1
+    tmpReal  = 0
+    for isig, wave in enumerate(vcd_dict):
+        tmpDict = vcd_dict[wave]
+        for tidx in range(0+1,len(tmpDict)):
+            tmpList = list(tmpDict[tidx])
+            tmpReal = (tmpList[0] - syncTime)/minDiffTime/tmpRatio
+            if (abs(tmpReal-round(tmpReal)) > 0.25):
+                if (tmpRatio < 4): # not too much otherwise un-readable
+                    tmpRatio = tmpRatio*2
+    minDiffTime = minDiffTime / tmpRatio
+    #print("Min diff time:",minDiffTime)
+
+    startTime = syncTime - ceil((syncTime-startTime)/minDiffTime)*minDiffTime
+    #print('Start time:',startTime)
+
+    #2nd loop to apply rounding
+    tmpReal = 0
+    for isig, wave in enumerate(vcd_dict):
+        tmpDict = vcd_dict[wave]
+        for tidx in range(len(tmpDict)):
+            tmpList = list(tmpDict[tidx])
+            tmpReal = (tmpList[0] - startTime)/minDiffTime
+            tmpList[0] = round(tmpReal)
+            if (tidx==0): tmpList[0]=0
+            while len(tmpList[1]) < tmpIsBus[isig]:
+                tmpList[1] = '0'+tmpList[1]
+            tmpDict[tidx] = tuple(tmpList)
+        vcd_dict[wave] = tmpDict
+
+    config['maxtime'] = ceil((endTime-startTime)/minDiffTime)
+
+    return 1
 
 def homogenize_waves(vcd_dict, timescale):
     slots = int(config['maxtime']/timescale) + 1
@@ -155,6 +254,7 @@ def dump_wavedrom(vcd_dict, timescale):
             if isbus:
                 if lastval != j[1]:
                     digit = '='
+                    #Modif FL 2021/04/15
                     if 'x' not in j[1]:
                         if '.' not in j[1]:
                             drom['signal'][idromsig]['data'].append(
@@ -164,6 +264,7 @@ def dump_wavedrom(vcd_dict, timescale):
                             drom['signal'][idromsig]['data'].append("{:.3e}".format(float(j[1])))
                     else:
                         digit = 'x'
+                    #endmodif
             else:
                 j = (j[0], clockvalue(wave, j[1]))
                 if lastval != j[1]:
@@ -206,7 +307,7 @@ def dump_wavedrom(vcd_dict, timescale):
         print(json.dumps(drom, indent=4))
 
 
-def vcd2wavedrom():
+def vcd2wavedrom(auto):
     vcd = parse_vcd(config['input'])
     timescale = int(re.match(r'(\d+)', get_timescale()).group(1))
     vcd_dict = {}
@@ -214,25 +315,32 @@ def vcd2wavedrom():
         vcd_dict[vcd[i]['nets'][0]['hier']+'.'+vcd[i]['nets'][0]['name']] = \
             vcd[i]['tv']
 
+    if auto:
+        #print(vcd_dict)
+        timescale = auto_config_waves(vcd_dict)
+        #print(vcd_dict)
+
     homogenize_waves(vcd_dict, timescale)
+    #print(vcd_dict)
     dump_wavedrom(vcd_dict, timescale)
 
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Transform VCD to wavedrom')
-    parser.add_argument('--config', dest='configfile', required=True)
+    parser.add_argument('--config', dest='configfile', required=False)
     parser.add_argument('--input', nargs='?', dest='input', required=True)
     parser.add_argument('--output', nargs='?', dest='output', required=False)
 
     args = parser.parse_args(argv)
     args.input = os.path.abspath(os.path.join(os.getcwd(), args.input))
 
-    with open(args.configfile) as json_file:
-        config.update(json.load(json_file))
+    if args.configfile:
+        with open(args.configfile) as json_file:
+            config.update(json.load(json_file))
 
     config['input'] = args.input
     config['output'] = args.output
-    vcd2wavedrom()
+    vcd2wavedrom(args.configfile is None)
 
 
 if __name__ == '__main__':

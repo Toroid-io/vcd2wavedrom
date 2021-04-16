@@ -164,7 +164,7 @@ def dump_wavedrom(vcd_dict, timescale):
                                     format(int(j[1], 2), 'X')
                             )
                         else:
-                            drom['signal'][idromsig]['data'].append(j[1])
+                            drom['signal'][idromsig]['data'].append("{:.3e}".format(float(j[1])))
                     else:
                         digit = 'x'
             else:

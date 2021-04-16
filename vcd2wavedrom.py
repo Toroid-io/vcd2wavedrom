@@ -184,11 +184,14 @@ def dump_wavedrom(vcd_dict, timescale):
     Order per config and add extra user parameters
     """
     ordered = []
-    for filtered in config['filter']:
-        for wave in drom['signal']:
-            if wave['name'] == filtered:
-                ordered.append(wave)
-                appendconfig(wave)
+    if '__all__' in config['filter']:
+        ordered = drom['signal']
+    else:
+        for filtered in config['filter']:
+            for wave in drom['signal']:
+                if wave['name'] == filtered:
+                    ordered.append(wave)
+                    appendconfig(wave)
     drom['signal'] = ordered
     if 'hscale' in config:
         drom['config']['hscale'] = config['hscale']

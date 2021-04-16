@@ -155,12 +155,15 @@ def dump_wavedrom(vcd_dict, timescale):
             if isbus:
                 if lastval != j[1]:
                     digit = '='
-                if 'x' not in j[1]:
-                    drom['signal'][idromsig]['data'].append(
-                            format(int(j[1], 2), 'X')
-                    )
-                else:
-                    digit = 'x'
+                    if 'x' not in j[1]:
+                        if '.' not in j[1]:
+                            drom['signal'][idromsig]['data'].append(
+                                    format(int(j[1], 2), 'X')
+                            )
+                        else:
+                            drom['signal'][idromsig]['data'].append("{:.3e}".format(float(j[1])))
+                    else:
+                        digit = 'x'
             else:
                 j = (j[0], clockvalue(wave, j[1]))
                 if lastval != j[1]:

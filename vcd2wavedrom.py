@@ -88,86 +88,70 @@ def auto_config_waves(vcd_dict):
     config['clocks'] = []
     config['signal'] = []
 
-    tmpList=[]
-    for isig, wave in enumerate(vcd_dict):
-        tmpList.append(wave)
-    config['filter'] = tmpList
+    buses_widths = []
 
     for isig, wave in enumerate(vcd_dict):
-        if (startTime < 0) or (vcd_dict[wave][0][0] < startTime):
-            startTime = vcd_dict[wave][0][0]
-    #print('Start time:',startTime)
+        config['filter'].append(wave)
 
-    for isig, wave in enumerate(vcd_dict):
-        tmpDict = vcd_dict[wave]
-        tmpThisOneIsBus=0
-        for tidx in range(len(tmpDict)):
-            if ((tidx==1) and ((syncTime < 0) or (tmpDict[tidx][0] < syncTime))):
-                syncTime = tmpDict[tidx][0]
-    #print('Sync time:',syncTime)
+        wave_points = vcd_dict[wave]
+        wave_first_point = wave_points[0]
+        wave_first_time = wave_first_point[0]
+        if (startTime < 0) or (wave_first_time < startTime):
+            startTime = wave_first_time
 
-    tmpIsBus=[]
-    for isig, wave in enumerate(vcd_dict):
-        tmpDict = vcd_dict[wave]
-        tmpThisOneIsBus=0
-        for tidx in range(len(tmpDict)):
-            if (endTime < 0) or (tmpDict[tidx][0] > endTime):
-                endTime = tmpDict[tidx][0]
-            if (len(tmpDict[tidx][1])>1) and (len(tmpDict[tidx][1])>tmpThisOneIsBus):
-                tmpThisOneIsBus=len(tmpDict[tidx][1])
-        tmpIsBus.append(tmpThisOneIsBus)
-    #print('End   time:',endTime)
+        if (len(wave_points) > 1) and ((syncTime < 0) or (wave_points[1][0] < syncTime)):
+            syncTime = wave_points[1][0]
 
-    for isig, wave in enumerate(vcd_dict):
-        tmpDict = vcd_dict[wave]
-        for tidx in range(1+1,len(tmpDict)):
-            tmpDiff = tmpDict[tidx][0] - tmpDict[tidx-1][0]
-            if (tmpDict[tidx-1][0]>=startTime):
+        bus_width = 0
+        for wave_point in wave_points:
+            if (endTime < 0) or (wave_point[0] > endTime):
+                endTime = wave_point[0]
+            if (len(wave_point[1]) > 1) and (len(wave_point[1]) > bus_width):
+                bus_width = len(wave_point[1])
+        buses_widths.append(bus_width)
+
+        for tidx in range(2, len(wave_points)):
+            tmpDiff = wave_points[tidx][0] - wave_points[tidx - 1][0]
+            if (wave_points[tidx - 1][0] >= startTime):
                 if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
                     minDiffTime = tmpDiff
-    #print("Min diff time:",minDiffTime)
-    if (minDiffTime<0): #corner case
-        for isig, wave in enumerate(vcd_dict):
-            tmpDict = vcd_dict[wave]
-            for tidx in range(1+0,len(tmpDict)):
-                tmpDiff = tmpDict[tidx][0] - tmpDict[tidx-1][0]
-                if (tmpDict[tidx-1][0]>=startTime):
-                    if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
-                        minDiffTime = tmpDiff
-        #print("Min diff time:",minDiffTime)
 
-    #1st loop to refine minDiffTime for async design or multiple async clocks
+    # Corner case
+    if minDiffTime < 0:
+        for tidx in range(1, len(wave_points)):
+            tmpDiff = wave_points[tidx][0] - wave_points[tidx - 1][0]
+            if (wave_points[tidx - 1][0] >= startTime):
+                if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
+                    minDiffTime = tmpDiff
+
+    # 1st loop to refine minDiffTime for async design or multiple async clocks
     tmpRatio = 1
     tmpReal  = 0
     for isig, wave in enumerate(vcd_dict):
-        tmpDict = vcd_dict[wave]
-        for tidx in range(0+1,len(tmpDict)):
-            tmpList = list(tmpDict[tidx])
-            tmpReal = (tmpList[0] - syncTime)/minDiffTime/tmpRatio
-            if (abs(tmpReal-round(tmpReal)) > 0.25):
-                if (tmpRatio < 4): # not too much otherwise un-readable
-                    tmpRatio = tmpRatio*2
+        wave_points = vcd_dict[wave]
+        for wave_point in wave_points:
+            tmpReal = (wave_point[0] - syncTime) / minDiffTime / tmpRatio
+            if abs(tmpReal - round(tmpReal)) > 0.25:
+                # not too much otherwise un-readable
+                if tmpRatio < 4:
+                    tmpRatio = tmpRatio * 2
+
     minDiffTime = minDiffTime / tmpRatio
-    #print("Min diff time:",minDiffTime)
+    startTime = syncTime - ceil((syncTime - startTime) / minDiffTime) * minDiffTime
 
-    startTime = syncTime - ceil((syncTime-startTime)/minDiffTime)*minDiffTime
-    #print('Start time:',startTime)
-
-    #2nd loop to apply rounding
+    # 2nd loop to apply rounding
     tmpReal = 0
     for isig, wave in enumerate(vcd_dict):
-        tmpDict = vcd_dict[wave]
-        for tidx in range(len(tmpDict)):
-            tmpList = list(tmpDict[tidx])
-            tmpReal = (tmpList[0] - startTime)/minDiffTime
-            tmpList[0] = round(tmpReal)
-            if (tidx==0): tmpList[0]=0
-            while len(tmpList[1]) < tmpIsBus[isig]:
-                tmpList[1] = '0'+tmpList[1]
-            tmpDict[tidx] = tuple(tmpList)
-        vcd_dict[wave] = tmpDict
+        wave_points = vcd_dict[wave]
+        for wave_point in wave_points:
+            tmpReal = (wave_point[0] - startTime) / minDiffTime
+            wave_point[0] = round(tmpReal)
+            if tidx == 0:
+                wave_point[0] = 0
+            while len(wave_point[1]) < buses_widths[isig]:
+                wave_point[1] = '0' + wave_point[1]
 
-    config['maxtime'] = ceil((endTime-startTime)/minDiffTime)
+    config['maxtime'] = ceil((endTime - startTime) / minDiffTime)
 
     return 1
 
@@ -311,15 +295,12 @@ def vcd2wavedrom(auto):
     vcd_dict = {}
     for i in vcd:
         vcd_dict[vcd[i]['nets'][0]['hier']+'.'+vcd[i]['nets'][0]['name']] = \
-            vcd[i]['tv']
+            [list(tv) for tv in vcd[i]['tv']]
 
     if auto:
-        #print(vcd_dict)
         timescale = auto_config_waves(vcd_dict)
-        #print(vcd_dict)
 
     homogenize_waves(vcd_dict, timescale)
-    #print(vcd_dict)
     dump_wavedrom(vcd_dict, timescale)
 
 

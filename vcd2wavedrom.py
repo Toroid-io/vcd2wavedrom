@@ -91,7 +91,13 @@ def auto_config_waves(vcd_dict):
     buses_widths = []
 
     for isig, wave in enumerate(vcd_dict):
-        config['filter'].append(wave)
+        busresult = busregex.match(wave)
+        if busresult is not None and len(busresult.groups()) == 2:
+            name = busresult.group(1)
+            if name not in config['filter']:
+                config['filter'].append(name)
+        else:
+            config['filter'].append(wave)
 
         wave_points = vcd_dict[wave]
         wave_first_point = wave_points[0]
@@ -102,7 +108,7 @@ def auto_config_waves(vcd_dict):
         if (len(wave_points) > 1) and ((syncTime < 0) or (wave_points[1][0] < syncTime)):
             syncTime = wave_points[1][0]
 
-        bus_width = 0
+        bus_width = 1
         for wave_point in wave_points:
             if (endTime < 0) or (wave_point[0] > endTime):
                 endTime = wave_point[0]

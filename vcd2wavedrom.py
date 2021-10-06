@@ -146,8 +146,7 @@ def auto_config_waves(vcd_dict):
         for wave_point in wave_points:
             tmpReal = (wave_point[0] - startTime) / minDiffTime
             wave_point[0] = round(tmpReal)
-            if tidx == 0:
-                wave_point[0] = 0
+        wave_points[0][0] = 0
 
     config['maxtime'] = ceil((endTime - startTime) / minDiffTime)
 

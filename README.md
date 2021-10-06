@@ -3,8 +3,7 @@
 Python script to transform a VCD file to [wavedrom](https://wavedrom.com/) format
 
 ```
-usage: vcd2wavedrom.py [-h] --config CONFIGFILE --input [INPUT]
-                       [--output [OUTPUT]]
+usage: vcd2wavedrom.py [-h] [--config CONFIGFILE] --input [INPUT] [--output [OUTPUT]]
 
 Transform VCD to wavedrom
 
@@ -18,6 +17,11 @@ optional arguments:
 ## Quickstart
 
 Test the example given by running `make` in the project directory.
+
+## Auto configuration
+
+If no configuration file is provided, a default configuration will be
+created based on the contents of the vcd file.
 
 ## Config options
 

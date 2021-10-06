@@ -7,6 +7,8 @@ import re
 from Verilog_VCD import parse_vcd
 from Verilog_VCD import get_timescale
 
+from math import floor, ceil
+
 busregex = re.compile(r'(.+)\[(\d+)\]')
 busregex2 = re.compile(r'(.+)\[(\d):(\d)\]')
 config = {}
@@ -71,6 +73,93 @@ def group_buses(vcd_dict, slots):
                     buses[wave]['data'].append(strval)
     return buses
 
+def auto_config_waves(vcd_dict):
+    startTime   = -1
+    syncTime    = -1
+    endTime     = -1
+    minDiffTime = -1
+
+    """
+    Warning: will overwrite all information from config file if any
+    Works best with full synchronous signals
+    """
+
+    config['filter'] = []
+    config['clocks'] = []
+    config['signal'] = []
+
+    buses_widths = []
+
+    for isig, wave in enumerate(vcd_dict):
+        busresult = busregex.match(wave)
+        if busresult is not None and len(busresult.groups()) == 2:
+            name = busresult.group(1)
+            if name not in config['filter']:
+                config['filter'].append(name)
+        else:
+            config['filter'].append(wave)
+
+        wave_points = vcd_dict[wave]
+        wave_first_point = wave_points[0]
+        wave_first_time = wave_first_point[0]
+        if (startTime < 0) or (wave_first_time < startTime):
+            startTime = wave_first_time
+
+        if (len(wave_points) > 1) and ((syncTime < 0) or (wave_points[1][0] < syncTime)):
+            syncTime = wave_points[1][0]
+
+        bus_width = 1
+        for wave_point in wave_points:
+            if (endTime < 0) or (wave_point[0] > endTime):
+                endTime = wave_point[0]
+            if (len(wave_point[1]) > 1) and (len(wave_point[1]) > bus_width):
+                bus_width = len(wave_point[1])
+        buses_widths.append(bus_width)
+
+        for tidx in range(2, len(wave_points)):
+            tmpDiff = wave_points[tidx][0] - wave_points[tidx - 1][0]
+            if (wave_points[tidx - 1][0] >= startTime):
+                if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
+                    minDiffTime = tmpDiff
+
+    # Corner case
+    if minDiffTime < 0:
+        for tidx in range(1, len(wave_points)):
+            tmpDiff = wave_points[tidx][0] - wave_points[tidx - 1][0]
+            if (wave_points[tidx - 1][0] >= startTime):
+                if ((minDiffTime < 0) or (tmpDiff < minDiffTime)) and (tmpDiff > 0):
+                    minDiffTime = tmpDiff
+
+    # 1st loop to refine minDiffTime for async design or multiple async clocks
+    tmpRatio = 1
+    tmpReal  = 0
+    for isig, wave in enumerate(vcd_dict):
+        wave_points = vcd_dict[wave]
+        for wave_point in wave_points:
+            tmpReal = (wave_point[0] - syncTime) / minDiffTime / tmpRatio
+            if abs(tmpReal - round(tmpReal)) > 0.25:
+                # not too much otherwise un-readable
+                if tmpRatio < 4:
+                    tmpRatio = tmpRatio * 2
+
+    minDiffTime = minDiffTime / tmpRatio
+    startTime = syncTime - ceil((syncTime - startTime) / minDiffTime) * minDiffTime
+
+    # 2nd loop to apply rounding
+    tmpReal = 0
+    for isig, wave in enumerate(vcd_dict):
+        wave_points = vcd_dict[wave]
+        for wave_point in wave_points:
+            tmpReal = (wave_point[0] - startTime) / minDiffTime
+            wave_point[0] = round(tmpReal)
+            if tidx == 0:
+                wave_point[0] = 0
+            while len(wave_point[1]) < buses_widths[isig]:
+                wave_point[1] = '0' + wave_point[1]
+
+    config['maxtime'] = ceil((endTime - startTime) / minDiffTime)
+
+    return 1
 
 def homogenize_waves(vcd_dict, timescale):
     slots = int(config['maxtime']/timescale) + 1
@@ -206,13 +295,16 @@ def dump_wavedrom(vcd_dict, timescale):
         print(json.dumps(drom, indent=4))
 
 
-def vcd2wavedrom():
+def vcd2wavedrom(auto):
     vcd = parse_vcd(config['input'])
     timescale = int(re.match(r'(\d+)', get_timescale()).group(1))
     vcd_dict = {}
     for i in vcd:
         vcd_dict[vcd[i]['nets'][0]['hier']+'.'+vcd[i]['nets'][0]['name']] = \
-            vcd[i]['tv']
+            [list(tv) for tv in vcd[i]['tv']]
+
+    if auto:
+        timescale = auto_config_waves(vcd_dict)
 
     homogenize_waves(vcd_dict, timescale)
     dump_wavedrom(vcd_dict, timescale)
@@ -220,19 +312,20 @@ def vcd2wavedrom():
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Transform VCD to wavedrom')
-    parser.add_argument('--config', dest='configfile', required=True)
+    parser.add_argument('--config', dest='configfile', required=False)
     parser.add_argument('--input', nargs='?', dest='input', required=True)
     parser.add_argument('--output', nargs='?', dest='output', required=False)
 
     args = parser.parse_args(argv)
     args.input = os.path.abspath(os.path.join(os.getcwd(), args.input))
 
-    with open(args.configfile) as json_file:
-        config.update(json.load(json_file))
+    if args.configfile:
+        with open(args.configfile) as json_file:
+            config.update(json.load(json_file))
 
     config['input'] = args.input
     config['output'] = args.output
-    vcd2wavedrom()
+    vcd2wavedrom(args.configfile is None)
 
 
 if __name__ == '__main__':

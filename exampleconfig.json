@@ -1,18 +1,18 @@
 {
     "signal": {
-        "s_rst_int": {
+        "encoder_8b_10b_testbench.s_rst_int": {
             "phase": 0.9
         },
-        "s_datain_int": {
+        "encoder_8b_10b_testbench.s_datain_int": {
             "phase": 0.9
         },
-        "s_datain_k_int": {
+        "encoder_8b_10b_testbench.s_datain_k_int": {
             "phase": 0.9
         },
-        "s_datain_valid_int": {
+        "encoder_8b_10b_testbench.s_datain_valid_int": {
             "phase": 0.9
         },
-        "s_rd_in_int": {
+        "encoder_8b_10b_testbench.s_rd_in_int": {
             "phase": 0.9
         }
     },
@@ -29,11 +29,11 @@
         "encoder_8b_10b_testbench.s_rd_out_int"
     ],
     "replace": {
-        "s_rd_in_int": {
+        "encoder_8b_10b_testbench.s_rd_in_int": {
             "1": "RD+",
             "2": "RD-"
         },
-        "s_rd_out_int": {
+        "encoder_8b_10b_testbench.s_rd_out_int": {
             "1": "RD+",
             "2": "RD-"
         }

@@ -9,9 +9,11 @@ from Verilog_VCD import get_timescale
 
 from math import floor, ceil
 
-busregex = re.compile(r'(.+)\[(\d+)\]')
+busregex = re.compile(r'(.+)(\[|\()(\d+)(\]|\))')
 busregex2 = re.compile(r'(.+)\[(\d):(\d)\]')
 config = {}
+bit_open = None
+bit_close = None
 
 
 def replacevalue(wave, strval):
@@ -25,14 +27,19 @@ def replacevalue(wave, strval):
 def group_buses(vcd_dict, slots):
     buses = {}
     buswidth = {}
+    global bit_open
+    global bit_close
+
     """
     Extract bus name and width
     """
     for isig, wave in enumerate(vcd_dict):
         result = busregex.match(wave)
-        if result is not None and len(result.groups()) == 2:
+        if result is not None and len(result.groups()) == 4:
             name = result.group(1)
-            pos = int(result.group(2))
+            pos = int(result.group(3))
+            bit_open = result.group(2)
+            bit_close = ']' if bit_open == '[' else ')'
             if name not in buses:
                 buses[name] = {
                         'name': name,
@@ -42,6 +49,7 @@ def group_buses(vcd_dict, slots):
                 buswidth[name] = 0
             if pos > buswidth[name]:
                 buswidth[name] = pos
+
     """
     Create hex from bits
     """
@@ -55,7 +63,7 @@ def group_buses(vcd_dict, slots):
                 if bit % 8 == 0 and bit != 0:
                     strval = format(byte, 'X')+strval
                     byte = 0
-                val = vcd_dict[wave+'['+str(bit)+']'][slot][1]
+                val = vcd_dict[wave+bit_open+str(bit)+bit_close][slot][1]
                 if val != '0' and val != '1':
                     byte = -1
                     break
@@ -84,21 +92,11 @@ def auto_config_waves(vcd_dict):
     Works best with full synchronous signals
     """
 
-    config['filter'] = []
+    config['filter'] = ['__all__']
     config['clocks'] = []
     config['signal'] = []
 
-    buses_widths = []
-
     for isig, wave in enumerate(vcd_dict):
-        busresult = busregex.match(wave)
-        if busresult is not None and len(busresult.groups()) == 2:
-            name = busresult.group(1)
-            if name not in config['filter']:
-                config['filter'].append(name)
-        else:
-            config['filter'].append(wave)
-
         wave_points = vcd_dict[wave]
         wave_first_point = wave_points[0]
         wave_first_time = wave_first_point[0]
@@ -108,13 +106,9 @@ def auto_config_waves(vcd_dict):
         if (len(wave_points) > 1) and ((syncTime < 0) or (wave_points[1][0] < syncTime)):
             syncTime = wave_points[1][0]
 
-        bus_width = 1
         for wave_point in wave_points:
             if (endTime < 0) or (wave_point[0] > endTime):
                 endTime = wave_point[0]
-            if (len(wave_point[1]) > 1) and (len(wave_point[1]) > bus_width):
-                bus_width = len(wave_point[1])
-        buses_widths.append(bus_width)
 
         for tidx in range(2, len(wave_points)):
             tmpDiff = wave_points[tidx][0] - wave_points[tidx - 1][0]
@@ -154,8 +148,6 @@ def auto_config_waves(vcd_dict):
             wave_point[0] = round(tmpReal)
             if tidx == 0:
                 wave_point[0] = 0
-            while len(wave_point[1]) < buses_widths[isig]:
-                wave_point[1] = '0' + wave_point[1]
 
     config['maxtime'] = ceil((endTime - startTime) / minDiffTime)
 
@@ -211,7 +203,7 @@ def appendconfig(wave):
         wave.update(config['signal'][wavename])
 
 
-def dump_wavedrom(vcd_dict, timescale):
+def dump_wavedrom(vcd_dict, vcd_dict_sizes, timescale):
     drom = {'signal': [], 'config': {'hscale': 1}}
     slots = int(config['maxtime']/timescale)
     buses = group_buses(vcd_dict, slots)
@@ -219,7 +211,7 @@ def dump_wavedrom(vcd_dict, timescale):
     Replace old signals that were grouped
     """
     for bus in buses:
-        pattern = re.compile(r"^" + re.escape(bus) + "\\[.*")
+        pattern = re.compile(r"^" + re.escape(bus) + "\\"+bit_open+".*")
         for wave in list(vcd_dict.keys()):
             if pattern.match(wave) is not None:
                 del vcd_dict[wave]
@@ -236,7 +228,7 @@ def dump_wavedrom(vcd_dict, timescale):
             'data': []
         })
         lastval = ''
-        isbus = busregex2.match(wave) is not None
+        isbus = busregex2.match(wave) is not None or vcd_dict_sizes[wave] > 1
         for j in vcd_dict[wave]:
             if not samplenow(j[0]):
                 continue
@@ -299,15 +291,20 @@ def vcd2wavedrom(auto):
     vcd = parse_vcd(config['input'])
     timescale = int(re.match(r'(\d+)', get_timescale()).group(1))
     vcd_dict = {}
+    vcd_dict_sizes = {}
     for i in vcd:
-        vcd_dict[vcd[i]['nets'][0]['hier']+'.'+vcd[i]['nets'][0]['name']] = \
-            [list(tv) for tv in vcd[i]['tv']]
+        if 'tv' in vcd[i]:
+            for net in vcd[i]['nets']:
+                vcd_dict_sizes[net['hier']+'.'+net['name']] = \
+                    int(net['size'])
+                vcd_dict[net['hier']+'.'+net['name']] = \
+                    [list(tv) for tv in vcd[i]['tv']]
 
     if auto:
         timescale = auto_config_waves(vcd_dict)
 
     homogenize_waves(vcd_dict, timescale)
-    dump_wavedrom(vcd_dict, timescale)
+    dump_wavedrom(vcd_dict, vcd_dict_sizes, timescale)
 
 
 def main(argv):

@@ -27,7 +27,6 @@ def replacevalue(wave, strval):
 def group_buses(vcd_dict, slots):
     buses = {}
     buswidth = {}
-    brackets = True;
     global bit_open
     global bit_close
 
@@ -39,7 +38,8 @@ def group_buses(vcd_dict, slots):
         if result is not None and len(result.groups()) == 4:
             name = result.group(1)
             pos = int(result.group(3))
-            brackets = result.group(2) == '['
+            bit_open = result.group(2)
+            bit_close = ']' if bit_open == '[' else ')'
             if name not in buses:
                 buses[name] = {
                         'name': name,
@@ -49,9 +49,6 @@ def group_buses(vcd_dict, slots):
                 buswidth[name] = 0
             if pos > buswidth[name]:
                 buswidth[name] = pos
-
-    bit_open = '[' if brackets else '('
-    bit_close = ']' if brackets else ')'
 
     """
     Create hex from bits

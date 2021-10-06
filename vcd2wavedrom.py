@@ -203,7 +203,7 @@ def appendconfig(wave):
         wave.update(config['signal'][wavename])
 
 
-def dump_wavedrom(vcd_dict, vcd_dict_sizes, timescale):
+def dump_wavedrom(vcd_dict, vcd_dict_types, timescale):
     drom = {'signal': [], 'config': {'hscale': 1}}
     slots = int(config['maxtime']/timescale)
     buses = group_buses(vcd_dict, slots)
@@ -228,21 +228,30 @@ def dump_wavedrom(vcd_dict, vcd_dict_sizes, timescale):
             'data': []
         })
         lastval = ''
-        isbus = busregex2.match(wave) is not None or vcd_dict_sizes[wave] > 1
+        isbus = busregex2.match(wave) is not None or vcd_dict_types[wave] == 'bus'
         for j in vcd_dict[wave]:
             if not samplenow(j[0]):
                 continue
             digit = '.'
-            if isbus:
+            value = None
+            try:
+                value = int(j[1])
+                value = format(int(j[1], 2), 'X')
+            except:
+                pass
+            if value is None:
+                try:
+                    value = float(j[1])
+                    value = "{:.3e}".format(float(j[1]))
+                except:
+                    pass
+            if value is None:
+                value = j[1]
+            if isbus or vcd_dict_types[wave] == 'string':
                 if lastval != j[1]:
                     digit = '='
                     if 'x' not in j[1]:
-                        if '.' not in j[1]:
-                            drom['signal'][idromsig]['data'].append(
-                                    format(int(j[1], 2), 'X')
-                            )
-                        else:
-                            drom['signal'][idromsig]['data'].append("{:.3e}".format(float(j[1])))
+                        drom['signal'][idromsig]['data'].append(value)
                     else:
                         digit = 'x'
             else:
@@ -291,12 +300,12 @@ def vcd2wavedrom(auto):
     vcd = parse_vcd(config['input'])
     timescale = int(re.match(r'(\d+)', get_timescale()).group(1))
     vcd_dict = {}
-    vcd_dict_sizes = {}
+    vcd_dict_types = {}
     for i in vcd:
         if 'tv' in vcd[i]:
             for net in vcd[i]['nets']:
-                vcd_dict_sizes[net['hier']+'.'+net['name']] = \
-                    int(net['size'])
+                vcd_dict_types[net['hier']+'.'+net['name']] = \
+                    net['type']
                 vcd_dict[net['hier']+'.'+net['name']] = \
                     [list(tv) for tv in vcd[i]['tv']]
 
@@ -304,7 +313,7 @@ def vcd2wavedrom(auto):
         timescale = auto_config_waves(vcd_dict)
 
     homogenize_waves(vcd_dict, timescale)
-    dump_wavedrom(vcd_dict, vcd_dict_sizes, timescale)
+    dump_wavedrom(vcd_dict, vcd_dict_types, timescale)
 
 
 def main(argv):

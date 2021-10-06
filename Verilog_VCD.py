@@ -74,6 +74,18 @@ def parse_vcd(file, only_sigs=0, use_stdout=0, siglist=[], opt_timescale=''):
                             data[code]['tv'] = []
                         data[code]['tv'].append( (time, value) )
 
+            if line[0] in ('s'):
+                (value,code) = line[1:].split()
+                if (code in data):
+                    if (use_stdout):
+                        print( time, value )
+                    else:
+                        if 'tv' not in data[code]:
+                            data[code]['tv'] = []
+                        data[code]['tv'].append( (time, value) )
+                        for net in data[code]['nets']:
+                            net['type'] = 'string'
+
             elif line[0] in ('0', '1', 'x', 'X', 'z', 'Z'):
                 value = line[0]
                 code = line[1:]
@@ -134,8 +146,8 @@ def parse_vcd(file, only_sigs=0, use_stdout=0, siglist=[], opt_timescale=''):
                 #   $var reg 1 *@ data $end
                 #   $var wire 4 ) addr [3:0] $end
                 ls = line.split()
-                type = ls[1]
-                size = ls[2]
+                _type = ls[1]
+                size = int(ls[2])
                 code = ls[3]
                 name = "".join(ls[4:-1])
                 path = '.'.join(hier)
@@ -146,11 +158,11 @@ def parse_vcd(file, only_sigs=0, use_stdout=0, siglist=[], opt_timescale=''):
                   if 'nets' not in data[code]:
                       data[code]['nets'] = []
                   var_struct = {
-                      'type' : type,
+                      'type' : 'signal' if size == 1 else 'bus',
                       'name' : name,
                       'size' : size,
                       'hier' : path,
-                   }
+                  }
                   if var_struct not in data[code]['nets']:
                       data[code]['nets'].append( var_struct )
 

@@ -151,7 +151,10 @@ def auto_config_waves(vcd_dict):
             wave_point[0] = round(tmpReal)
         wave_points[0][0] = 0
 
-    config['maxtime'] = ceil((endTime - startTime) / minDiffTime)
+    if 'maxtime' in config and config['maxtime'] is not None:
+        config['maxtime'] = min(ceil((endTime - startTime) / minDiffTime), config['maxtime'])
+    else:
+        config['maxtime'] = ceil((endTime - startTime) / minDiffTime)
 
     return 1
 
@@ -173,8 +176,9 @@ def homogenize_waves(vcd_dict, timescale):
 
 
 def includewave(wave):
-    if '__all__' in config['filter'] or \
-       wave in config['filter']:
+    if '__top__' in config['filter'] or ('top' in config and config['top']):
+        return wave.count('.') <= 1
+    elif '__all__' in config['filter'] or wave in config['filter']:
         return True
     return False
 
@@ -321,12 +325,26 @@ def vcd2wavedrom(auto):
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Transform VCD to wavedrom')
-    parser.add_argument('--config', dest='configfile', required=False)
-    parser.add_argument('--input', nargs='?', dest='input', required=True)
-    parser.add_argument('--output', nargs='?', dest='output', required=False)
-
+    parser.add_argument('-i', '--input', dest='input', 
+        help="Input VCD file", required=True)
+    parser.add_argument('-o', '--output', dest='output', 
+        help="Output Wavedrom file")
+    parser.add_argument('-c', '--config', dest='configfile',
+        help="Config file")
+    parser.add_argument('-r', '--samplerate', dest='samplerate', type=int,
+        help="Sample rate of wavedrom")
+    parser.add_argument('-t', '--maxtime', dest='maxtime', type=int,
+        help="Length of time for wavedrom")
+    parser.add_argument('-f', '--offset', dest='offset', type=int,
+        help="Time offset from start of VCD")
+    parser.add_argument('-z', '--hscale', dest='hscale', type=int,
+        help="Horizontal scale")
+    parser.add_argument('--top', dest='top', action="store_true", default=False,
+        help="Only output the top level signals")
+    
     args = parser.parse_args(argv)
     args.input = os.path.abspath(os.path.join(os.getcwd(), args.input))
+
 
     if args.configfile:
         with open(args.configfile) as json_file:
@@ -341,6 +359,16 @@ def main(argv):
         exit(1)
 
     config['output'] = args.output
+    config['top'] = args.top
+    if args.samplerate is not None:
+        config['samplerate'] = args.samplerate
+    if args.maxtime is not None:
+        config['maxtime'] = args.maxtime 
+    if args.offset is not None:
+        config['offset'] = args.offset
+    if args.hscale is not None:
+        config['hscale'] = args.hscale
+
     vcd2wavedrom(args.configfile is None)
 
 

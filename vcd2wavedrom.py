@@ -198,7 +198,7 @@ def samplenow(tick):
     if 'samplerate' in config:
         samplerate = config['samplerate']
 
-    if ((tick - offset) % samplerate) == 0:
+    if (tick - offset) >= 0 and (tick - offset) % samplerate <= 0:
         return True
     return False
 

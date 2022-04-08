@@ -8,7 +8,7 @@ import re
 
 # from Verilog_VCD import parse_vcd
 # from Verilog_VCD import get_timescale
-from vcdvcd import VCDVCD
+from vcdvcd.vcdvcd import VCDVCD
 
 from math import floor, ceil
 

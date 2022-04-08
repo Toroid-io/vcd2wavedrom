@@ -1,0 +1,20 @@
+[project]
+name = "vcd2wavedrom"
+version = "0.1"
+description = "Transform a VCD file into a wavedrom format"
+authors = [
+    {name="author name here", email="author@email.addr"}
+]
+dependencies = [
+    "vcdvcd ~= 2.3.2"
+]
+
+readme = "README.md"
+classifiers = []
+
+[project.urls]
+Home = "https://github.com/Toroid-io/vcd2wavedrom"
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"

@@ -32,6 +32,20 @@ options:
 
 Test the example given by running `make` in the project directory.
 
+Can be installed using `pip`:
+
+```
+git clone https://github.com/Toroid-io/vcd2wavedrom
+cd vcd2wavedrom
+pip install .
+```
+
+Doing this allows it to be run using:
+
+```
+python -m vcd2wavedrom.vcd2wavedrom -i example.vcd --config exampleconfig.json
+```
+
 ## Auto configuration
 
 If no configuration file is provided, a default configuration will be

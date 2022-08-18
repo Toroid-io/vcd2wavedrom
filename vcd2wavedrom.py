@@ -1,11 +1,14 @@
+#!/usr/bin/env python
+
 import sys
 import os
 import argparse
 import json
 import re
 
-from Verilog_VCD import parse_vcd
-from Verilog_VCD import get_timescale
+# from Verilog_VCD import parse_vcd
+# from Verilog_VCD import get_timescale
+from vcdvcd import VCDVCD
 
 from math import floor, ceil
 
@@ -296,17 +299,18 @@ def dump_wavedrom(vcd_dict, vcd_dict_types, timescale):
 
 
 def vcd2wavedrom(auto):
-    vcd = parse_vcd(config['input'])
-    timescale = int(re.match(r'(\d+)', get_timescale()).group(1))
+    vcd = VCDVCD(vcd_string=config['input_text'])
+    timescale = int(vcd.timescale['magnitude'])
     vcd_dict = {}
     vcd_dict_types = {}
+    vcd = vcd.data
     for i in vcd:
-        if 'tv' in vcd[i]:
-            for net in vcd[i]['nets']:
-                vcd_dict_types[net['hier']+'.'+net['name']] = \
-                    net['type']
-                vcd_dict[net['hier']+'.'+net['name']] = \
-                    [list(tv) for tv in vcd[i]['tv']]
+        if i != '$end':
+            if int(vcd[i].size) > 1:
+                vcd_dict_types[vcd[i].references[0]] = 'bus'
+            else:
+                vcd_dict_types[vcd[i].references[0]] = 'signal'
+            vcd_dict[vcd[i].references[0]] = [list(tv) for tv in vcd[i].tv]
 
     if auto:
         timescale = auto_config_waves(vcd_dict)
@@ -329,6 +333,13 @@ def main(argv):
             config.update(json.load(json_file))
 
     config['input'] = args.input
+    try:
+        with open(args.input, 'r') as f:
+            config['input_text'] = f.read()
+    except FileNotFoundError:
+        print(f'ERROR: File {args.input} not found!')
+        exit(1)
+
     config['output'] = args.output
     vcd2wavedrom(args.configfile is None)
 

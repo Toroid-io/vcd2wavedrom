@@ -3,7 +3,7 @@ name = "vcd2wavedrom"
 version = "0.1"
 description = "Transform a VCD file into a wavedrom format"
 authors = [
-    {name="author name here", email="author@email.addr"}
+    {name="Andrés MANELLI", email="am@toroid.io"}
 ]
 dependencies = [
     "vcdvcd ~= 2.3.2"
